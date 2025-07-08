@@ -9,26 +9,37 @@ public inherited sharing class FlowScholarshipLotteryAssigner {
     public static List<Result> assignLotteryNumbers(List<Request> requests) {
         Id programId = requests[0].programId;
 
-        // Get all the applications with a status of Approved
         List<Scholarship_Application__c> applications = getApprovedApplications(programId);
 
-        // Assign a random value to each application and sort them
-        for (Scholarship_Application__c app : applications) {
-            app.Lottery_Order__c = Crypto.getRandomInteger();
-        }
-
-        applications.sort(new SchAppLotteryComparator());
-
-        // Set lottery numbers to new index position
-        for (Integer i = 0; i < applications.size(); i++) {
-            applications[i].Lottery_Order__c = i + 1;
-        }
-
-        Database.update(applications, AccessLevel.USER_MODE);
+        assignRandomLotteryOrders(applications);
+        sortApplicationsByLotteryOrder(applications);
+        setLotteryOrderToIndex(applications);
+        updateApplications(applications);
 
         Result result = new Result();
         result.applications = applications;
         return new List<Result>{ result };
+    }
+
+    private static void assignRandomLotteryOrders(List<Scholarship_Application__c> applications) {
+        for (Scholarship_Application__c app : applications) {
+            app.Lottery_Order__c = Crypto.getRandomInteger();
+        }
+    }
+
+    private static void sortApplicationsByLotteryOrder(List<Scholarship_Application__c> applications) {
+        SchAppLotteryComparator comparator = new SchAppLotteryComparator();
+        applications.sort(comparator);
+    }
+
+    private static void setLotteryOrderToIndex(List<Scholarship_Application__c> applications) {
+        for (Integer i = 0; i < applications.size(); i++) {
+            applications[i].Lottery_Order__c = i + 1;
+        }
+    }
+
+    private static void updateApplications(List<Scholarship_Application__c> applications) {
+        Database.update(applications, AccessLevel.USER_MODE);
     }
 
     private static List<Scholarship_Application__c> getApprovedApplications(Id programId) {
